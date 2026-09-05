@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Weather Search App</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #eef6ff;
+            text-align: center;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+        }
+
+        h1 {
+            background: #2196f3;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        input {
+            padding: 12px;
+            width: 250px;
+            border: 2px solid #2196f3;
+            border-radius: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 20px;
+            background: #2196f3;
+            color: white;
+            cursor: pointer;
+        }
+
+        #weather {
+            margin-top: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 3px 12px #bbb;
+        }
+
+        .icon {
+            font-size: 40px;
+        }
+
+        .temp {
+            font-size: 45px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🌤️ Weather Search</h1>
+
+    <form id="form">
+        <input id="city" placeholder="Enter city name" required>
+        <button type="submit">Search</button>
+    </form>
+
+    <p id="message"></p>
+
+    <div id="weather"></div>
+
+</div>
+
+<script>
+
+const form = document.getElementById("form");
+const cityInput = document.getElementById("city");
+const weatherDiv = document.getElementById("weather");
+const message = document.getElementById("message");
+
+form.addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    const city = cityInput.value.trim();
+
+    message.textContent = "Loading...";
+    weatherDiv.innerHTML = "";
+
+    try {
+
+        const geoResponse = await fetch(
+            "https://geocoding-api.open-meteo.com/v1/search?name=" 
+            + encodeURIComponent(city)
+            + "&count=1&language=en&format=json"
+        );
+
+        const geoData = await geoResponse.json();
+
+        if (!geoData.results || geoData.results.length === 0) {
+            message.textContent = "City not found!";
+            return;
+        }
+
+        const location = geoData.results[0];
+
+        const weatherResponse = await fetch(
+            "https://api.open-meteo.com/v1/forecast?latitude="
+            + location.latitude
+            + "&longitude="
+            + location.longitude
+            + "&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto"
+        );
+
+        const data = await weatherResponse.json();
+
+        const weather = data.current;
+
+        let condition = "☀️ Sunny";
+
+        if (weather.weather_code >= 1 && weather.weather_code <= 3) {
+            condition = "⛅ Cloudy";
+        }
+
+        if (weather.weather_code >= 51 && weather.weather_code <= 67) {
+            condition = "🌧️ Rainy";
+        }
+
+        if (weather.weather_code >= 80 && weather.weather_code <= 82) {
+            condition = "🌧️ Rainy";
+        }
+
+        if (weather.weather_code >= 95) {
+            condition = "⛈️ Thunderstorm";
+        }
+
+        message.textContent = "";
+
+        weatherDiv.innerHTML = `
+            <div class="card">
+
+                <h2>
+                    ${location.name}, ${location.country}
+                </h2>
+
+                <div class="icon">
+                    ${condition}
+                </div>
+
+                <div class="temp">
+                    ${weather.temperature_2m}°C
+                </div>
+
+                <h3>${condition}</h3>
+
+                <p>💧 Humidity: ${weather.relative_humidity_2m}%</p>
+
+                <p>💨 Wind: ${weather.wind_speed_10m} km/h</p>
+
+            </div>
+        `;
+
+    } catch (error) {
+
+        message.textContent = "Unable to get weather data.";
+
+    }
+
+});
+
+</script>
+
+</body>
+</html>
